@@ -174,13 +174,31 @@ async function run(): Promise<void> {
     core.info(`Added or modified: ${addedModifiedFormatted}`)
 
     // Set step outputs using the environment file
-    fs.appendFileSync(process.env.GITHUB_OUTPUT, `all=${allFormatted}\n`)
-    fs.appendFileSync(process.env.GITHUB_OUTPUT, `added=${addedFormatted}\n`)
-    fs.appendFileSync(process.env.GITHUB_OUTPUT, `modified=${modifiedFormatted}\n`)
-    fs.appendFileSync(process.env.GITHUB_OUTPUT, `removed=${removedFormatted}\n`)
-    fs.appendFileSync(process.env.GITHUB_OUTPUT, `renamed=${renamedFormatted}\n`)
-    fs.appendFileSync(process.env.GITHUB_OUTPUT, `added_modified=${addedModifiedFormatted}\n`)
-    fs.appendFileSync(process.env.GITHUB_OUTPUT, `deleted=${removedFormatted}\n`)
+    if (process.env.GITHUB_OUTPUT) {
+      const outputFile = process.env.GITHUB_OUTPUT;
+      // Helper function to properly handle multiline output values
+      const setOutput = (name: string, value: string): void => {
+        if (value.includes('\n')) {
+          // For multiline strings, use the special delimiter format
+          const delimiter = `ghadelimiter_${Math.random()
+            .toString(36)
+            .substring(2)}`
+          fs.appendFileSync(outputFile, `${name}<<${delimiter}\n${value}\n${delimiter}\n`)
+        } else {
+          fs.appendFileSync(outputFile, `${name}=${value}\n`)
+        }
+      }
+
+      setOutput('all', allFormatted);
+      setOutput('added', addedFormatted);
+      setOutput('modified', modifiedFormatted);
+      setOutput('removed', removedFormatted);
+      setOutput('renamed', renamedFormatted);
+      setOutput('added_modified', addedModifiedFormatted);
+      setOutput('deleted', removedFormatted); // For backwards-compatibility
+    } else {
+      core.warning('GITHUB_OUTPUT environment variable not set. Output values won\'t be available for subsequent steps.');
+    }
   } catch (error) {
     if (error instanceof Error) {
       core.setFailed(error.message)
