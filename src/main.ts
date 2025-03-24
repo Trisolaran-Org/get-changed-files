@@ -1,4 +1,5 @@
 import * as core from '@actions/core'
+import * as fs from 'fs'
 import {context, getOctokit} from '@actions/github'
 
 type Format = 'space-delimited' | 'csv' | 'json'
@@ -172,16 +173,29 @@ async function run(): Promise<void> {
     core.info(`Renamed: ${renamedFormatted}`)
     core.info(`Added or modified: ${addedModifiedFormatted}`)
 
-    // Set step output context.
-    core.setOutput('all', allFormatted)
-    core.setOutput('added', addedFormatted)
-    core.setOutput('modified', modifiedFormatted)
-    core.setOutput('removed', removedFormatted)
-    core.setOutput('renamed', renamedFormatted)
-    core.setOutput('added_modified', addedModifiedFormatted)
+    // Set step outputs using the environment file
+    if (process.env.GITHUB_OUTPUT) {
+      fs.appendFileSync(process.env.GITHUB_OUTPUT, `all=${allFormatted}\n`)
+      fs.appendFileSync(process.env.GITHUB_OUTPUT, `added=${addedFormatted}\n`)
+      fs.appendFileSync(process.env.GITHUB_OUTPUT, `modified=${modifiedFormatted}\n`)
+      fs.appendFileSync(process.env.GITHUB_OUTPUT, `removed=${removedFormatted}\n`)
+      fs.appendFileSync(process.env.GITHUB_OUTPUT, `renamed=${renamedFormatted}\n`)
+      fs.appendFileSync(process.env.GITHUB_OUTPUT, `added_modified=${addedModifiedFormatted}\n`)
 
-    // For backwards-compatibility
-    core.setOutput('deleted', removedFormatted)
+      // For backwards-compatibility
+      fs.appendFileSync(process.env.GITHUB_OUTPUT, `deleted=${removedFormatted}\n`)
+    } else {
+      // Fallback to the deprecated method if GITHUB_OUTPUT is not defined
+      core.setOutput('all', allFormatted)
+      core.setOutput('added', addedFormatted)
+      core.setOutput('modified', modifiedFormatted)
+      core.setOutput('removed', removedFormatted)
+      core.setOutput('renamed', renamedFormatted)
+      core.setOutput('added_modified', addedModifiedFormatted)
+
+      // For backwards-compatibility
+      core.setOutput('deleted', removedFormatted)
+    }
   } catch (error) {
     if (error instanceof Error) {
       core.setFailed(error.message)
