@@ -1,5 +1,5 @@
 import * as core from '@actions/core'
-import {context, GitHub} from '@actions/github'
+import {context, getOctokit} from '@actions/github'
 
 type Format = 'space-delimited' | 'csv' | 'json'
 type FileStatus = 'added' | 'modified' | 'removed' | 'renamed'
@@ -7,7 +7,7 @@ type FileStatus = 'added' | 'modified' | 'removed' | 'renamed'
 async function run(): Promise<void> {
   try {
     // Create GitHub client with the API token.
-    const client = new GitHub(core.getInput('token', {required: true}))
+    const client = getOctokit(core.getInput('token', {required: true}))
     const format = core.getInput('format', {required: true}) as Format
 
     // Ensure that the format parameter is set properly.
@@ -84,12 +84,12 @@ async function run(): Promise<void> {
 
     // Get the changed files from the response payload.
     const files = response.data.files
-    const all = [] as string[],
-      added = [] as string[],
-      modified = [] as string[],
-      removed = [] as string[],
-      renamed = [] as string[],
-      addedModified = [] as string[]
+    const all: string[] = []
+    const added: string[] = []
+    const modified: string[] = []
+    const removed: string[] = []
+    const renamed: string[] = []
+    const addedModified: string[] = []
     for (const file of files) {
       const filename = file.filename
       // If we're using the 'space-delimited' format and any of the filenames have a space in them,
@@ -124,12 +124,12 @@ async function run(): Promise<void> {
     }
 
     // Format the arrays of changed files.
-    let allFormatted: string,
-      addedFormatted: string,
-      modifiedFormatted: string,
-      removedFormatted: string,
-      renamedFormatted: string,
-      addedModifiedFormatted: string
+    let allFormatted: string
+    let addedFormatted: string
+    let modifiedFormatted: string
+    let removedFormatted: string
+    let renamedFormatted: string
+    let addedModifiedFormatted: string
     switch (format) {
       case 'space-delimited':
         // If any of the filenames have a space in them, then fail the step.
@@ -183,7 +183,11 @@ async function run(): Promise<void> {
     // For backwards-compatibility
     core.setOutput('deleted', removedFormatted)
   } catch (error) {
-    core.setFailed(error.message)
+    if (error instanceof Error) {
+      core.setFailed(error.message)
+    } else {
+      core.setFailed('An unknown error occurred')
+    }
   }
 }
 
