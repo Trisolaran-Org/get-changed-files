@@ -60,7 +60,7 @@ async function run(): Promise<void> {
 
     // Use GitHub's compare two commits API.
     // https://developer.github.com/v3/repos/commits/#compare-two-commits
-    const response = await client.repos.compareCommits({
+    const response = await client.rest.repos.compareCommits({
       base,
       head,
       owner: context.repo.owner,
@@ -84,7 +84,7 @@ async function run(): Promise<void> {
     }
 
     // Get the changed files from the response payload.
-    const files = response.data.files
+    const files = response.data.files || []
     const all: string[] = []
     const added: string[] = []
     const modified: string[] = []
